@@ -53,6 +53,20 @@ func (c Signature) Hash(ctx context.Context, signer hash.Signer) (string, error)
 	), nil
 }
 
+func (c Signature) GenerateHeaders(ctx context.Context, signer hash.Signer, now time.Time) (map[string]string, error) {
+	signature, err := c.Hash(ctx, signer)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]string{
+		"Content-Type": "application/json; charset=UTF-8",
+		"Client-Id":    c.ClientId,
+		"Request-Time": GenerateZolozTimeStr(now),
+		"Signature":    fmt.Sprintf("algorithm=RSA256, signature=%s", signature),
+	}, nil
+}
+
 func GenerateBizId() string {
 	return strings.Replace(uuid.New().String(), "-", "", -1)
 }

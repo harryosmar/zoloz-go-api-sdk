@@ -1,13 +1,8 @@
 package zoloz_go_api_sdk
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
 	"github.com/harryosmar/zoloz-go-api-sdk/enums"
-	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type (
@@ -184,6 +179,10 @@ type (
 		ExtIdInfo    ExtIdInfo    `json:"extIdInfo"`
 		ExtRiskInfo  ExtRiskInfo  `json:"extRiskInfo"`
 	}
+
+	Request[In any, Out any] interface {
+		Convert() *Out
+	}
 )
 
 func (p *ProductConfig) Convert() *productConfig {
@@ -252,97 +251,27 @@ const (
 )
 
 func (c zolozClient) RealIdInit(ctx context.Context, reqRaw *RealIdInitRequest) (*RealIdInitResponse, error) {
-	var (
-		err error
-	)
-
-	defer func() {
-		if err != nil {
-			logrus.Errorf("zolozClient.RealIdInit got err %v", err)
-		}
-	}()
-
-	req := reqRaw.Convert()
-	reqBytes, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	now := time.Now()
-	headers, err := c.generateHeaders(ctx, uriPathRealIdInit, now, req)
-	if err != nil {
-		return nil, err
-	}
-
-	buffer := bytes.NewBuffer(reqBytes)
-	response, err := c.httpClient.Post(
+	return post[RealIdInitRequest, realIdInitRequest, RealIdInitResponse](
 		ctx,
-		fmt.Sprintf("%s%s", c.baseUrl, uriPathRealIdInit),
-		buffer,
-		headers,
+		"zolozClient.RealIdInit",
+		c.baseUrl,
+		uriPathRealIdInit,
+		c.clientId,
+		c.signer,
+		c.httpClient,
+		reqRaw,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	if response.Status != 200 {
-		err = fmt.Errorf("response Status Code != 200, %+v", response)
-		return nil, err
-	}
-
-	initResponse := RealIdInitResponse{}
-	err = json.Unmarshal(response.Content, &initResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	return &initResponse, nil
 }
 
 func (c zolozClient) RealIdCheckResult(ctx context.Context, reqRaw *RealIdCheckResultRequest) (*RealIdCheckResultResponse, error) {
-	var (
-		err error
-	)
-
-	defer func() {
-		if err != nil {
-			logrus.Errorf("zolozClient.RealIdCheckResult got err %v", err)
-		}
-	}()
-
-	req := reqRaw.Convert()
-	reqBytes, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	now := time.Now()
-	headers, err := c.generateHeaders(ctx, uriPathRealIdCheckResult, now, req)
-	if err != nil {
-		return nil, err
-	}
-
-	buffer := bytes.NewBuffer(reqBytes)
-	response, err := c.httpClient.Post(
+	return post[RealIdCheckResultRequest, realIdCheckResultRequest, RealIdCheckResultResponse](
 		ctx,
-		fmt.Sprintf("%s%s", c.baseUrl, uriPathRealIdCheckResult),
-		buffer,
-		headers,
+		"zolozClient.RealIdCheckResult",
+		c.baseUrl,
+		uriPathRealIdCheckResult,
+		c.clientId,
+		c.signer,
+		c.httpClient,
+		reqRaw,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	if response.Status != 200 {
-		err = fmt.Errorf("response Status Code != 200, %+v", response)
-		return nil, err
-	}
-
-	checkResultResponse := RealIdCheckResultResponse{}
-	err = json.Unmarshal(response.Content, &checkResultResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	return &checkResultResponse, nil
 }

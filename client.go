@@ -1,11 +1,15 @@
 package zoloz_go_api_sdk
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	hash "github.com/harryosmar/hash-go"
 	http_client "github.com/harryosmar/http-client-go"
 	"github.com/harryosmar/zoloz-go-api-sdk/utils"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 )
@@ -26,25 +30,87 @@ type (
 )
 
 func NewZolozClient(baseUrl string, httpClient http_client.HttpClientRepository, clientId string, signer hash.Signer) *zolozClient {
+	logrus.SetFormatter(&logrus.JSONFormatter{})
 	return &zolozClient{baseUrl: baseUrl, httpClient: httpClient, clientId: clientId, signer: signer}
 }
 
+func post[
+	ReqRawT RealIdInitRequest | RealIdCheckResultRequest,
+	ReqT realIdInitRequest | realIdCheckResultRequest,
+	ResT RealIdInitResponse | RealIdCheckResultResponse,
+](
+	ctx context.Context,
+	fnName string,
+	baseUrl string,
+	urlPath string,
+	clientId string,
+	signer hash.Signer,
+	httpClient http_client.HttpClientRepository,
+	reqRaw Request[ReqRawT, ReqT],
+) (*ResT, error) {
+	if ctx.Value(http_client.XRequestIdContext) == nil {
+		ctx = context.WithValue(context.TODO(), http_client.XRequestIdContext, uuid.New().String())
+	}
+
+	var (
+		err error
+	)
+
+	defer func() {
+		if err != nil {
+			logrus.Errorf("%s got err %v", fnName, err)
+		}
+	}()
+
+	req := reqRaw.Convert()
+	reqBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	headers, err := utils.Signature{
+		Method:      http.MethodPost,
+		Uri:         urlPath,
+		ClientId:    clientId,
+		RequestTime: now,
+		Body:        req,
+	}.GenerateHeaders(ctx, signer, now)
+	if err != nil {
+		return nil, err
+	}
+
+	buffer := bytes.NewBuffer(reqBytes)
+	response, err := httpClient.Post(
+		ctx,
+		fmt.Sprintf("%s%s", baseUrl, urlPath),
+		buffer,
+		headers,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.Status != 200 {
+		err = fmt.Errorf("response Status Code != 200, %+v", response)
+		return nil, err
+	}
+
+	var resp ResT
+	err = json.Unmarshal(response.Content, &resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}
+
 func (c zolozClient) generateHeaders(ctx context.Context, uri string, now time.Time, req interface{}) (map[string]string, error) {
-	signature, err := utils.Signature{
+	return utils.Signature{
 		Method:      http.MethodPost,
 		Uri:         uri,
 		ClientId:    c.clientId,
 		RequestTime: now,
 		Body:        req,
-	}.Hash(ctx, c.signer)
-	if err != nil {
-		return nil, err
-	}
-
-	return map[string]string{
-		"Content-Type": "application/json; charset=UTF-8",
-		"Client-Id":    c.clientId,
-		"Request-Time": utils.GenerateZolozTimeStr(now),
-		"Signature":    fmt.Sprintf("algorithm=RSA256, signature=%s", signature),
-	}, nil
+	}.GenerateHeaders(ctx, c.signer, now)
 }
