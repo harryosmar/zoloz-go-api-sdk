@@ -15,7 +15,7 @@ import (
 )
 
 type ZolozClient interface {
-	AuthenticationTest(ctx context.Context) (*http_client.Response, error)
+	AuthenticationTest(ctx context.Context) (*AuthenticationTestResponse, error)
 	RealIdInit(ctx context.Context, req *RealIdInitRequest) (*RealIdInitResponse, error)
 	RealIdCheckResult(ctx context.Context, req *RealIdCheckResultRequest) (*RealIdCheckResultResponse, error)
 }
@@ -35,9 +35,8 @@ func NewZolozClient(baseUrl string, httpClient http_client.HttpClientRepository,
 }
 
 func post[
-	ReqRawT RealIdInitRequest | RealIdCheckResultRequest,
-	ReqT realIdInitRequest | realIdCheckResultRequest,
-	ResT RealIdInitResponse | RealIdCheckResultResponse,
+	ReqT AuthenticationTestRequest | realIdInitRequest | realIdCheckResultRequest,
+	ResT AuthenticationTestResponse | RealIdInitResponse | RealIdCheckResultResponse,
 ](
 	ctx context.Context,
 	fnName string,
@@ -46,7 +45,7 @@ func post[
 	clientId string,
 	signer hash.Signer,
 	httpClient http_client.HttpClientRepository,
-	reqRaw Request[ReqRawT, ReqT],
+	req *ReqT,
 ) (*ResT, error) {
 	if ctx.Value(http_client.XRequestIdContext) == nil {
 		ctx = context.WithValue(context.TODO(), http_client.XRequestIdContext, uuid.New().String())
@@ -62,7 +61,6 @@ func post[
 		}
 	}()
 
-	req := reqRaw.Convert()
 	reqBytes, err := json.Marshal(req)
 	if err != nil {
 		return nil, err

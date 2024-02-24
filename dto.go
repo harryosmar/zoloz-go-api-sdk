@@ -91,6 +91,15 @@ type (
 		ResultMessage string `json:"resultMessage"`
 	}
 
+	AuthenticationTestRequest struct {
+		Title       string `json:"title"`
+		Description string `json:"description"`
+	}
+
+	AuthenticationTestResponse struct {
+		Result Result `json:"result"`
+	}
+
 	RealIdInitResponse struct {
 		Result        Result `json:"result"`
 		TransactionId string `json:"transactionId"`

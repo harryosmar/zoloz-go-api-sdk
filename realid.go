@@ -10,7 +10,7 @@ const (
 )
 
 func (c zolozClient) RealIdInit(ctx context.Context, reqRaw *RealIdInitRequest) (*RealIdInitResponse, error) {
-	return post[RealIdInitRequest, realIdInitRequest, RealIdInitResponse](
+	return post[realIdInitRequest, RealIdInitResponse](
 		ctx,
 		"zolozClient.RealIdInit",
 		c.baseUrl,
@@ -18,12 +18,12 @@ func (c zolozClient) RealIdInit(ctx context.Context, reqRaw *RealIdInitRequest) 
 		c.clientId,
 		c.signer,
 		c.httpClient,
-		reqRaw,
+		reqRaw.Convert(),
 	)
 }
 
 func (c zolozClient) RealIdCheckResult(ctx context.Context, reqRaw *RealIdCheckResultRequest) (*RealIdCheckResultResponse, error) {
-	return post[RealIdCheckResultRequest, realIdCheckResultRequest, RealIdCheckResultResponse](
+	return post[realIdCheckResultRequest, RealIdCheckResultResponse](
 		ctx,
 		"zolozClient.RealIdCheckResult",
 		c.baseUrl,
@@ -31,6 +31,6 @@ func (c zolozClient) RealIdCheckResult(ctx context.Context, reqRaw *RealIdCheckR
 		c.clientId,
 		c.signer,
 		c.httpClient,
-		reqRaw,
+		reqRaw.Convert(),
 	)
 }
