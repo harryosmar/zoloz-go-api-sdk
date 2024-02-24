@@ -5,5 +5,5 @@
 ## How to install
 
 ```
-go get github.com/harryosmar/zoloz-go-api-sdk
+go get github.com/harryosmar/zoloz-go-api-sdk@v1.0.3
 ```
